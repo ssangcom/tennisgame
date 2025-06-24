@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>테니스 대진표 (팀조합 중복방지 & 이름입력 통합)</title>
+  <style>
+    body { font-family: Arial; margin: 2rem; }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 8px; }
+    th { background: #f6f6f6; }
+    .courtA { background: #e0f7fa; }
+    .courtB { background: #fff3e0; }
+    input[type=text] { width: 350px; padding: 2px 4px;}
+    .settings { margin-bottom: 2em; }
+    .settings label { margin-right: 1.2em; }
+    .player-list { margin-bottom: 1.5em; }
+    .player-preview { font-size: 0.97em; color: #333; margin-bottom: 0.5em; }
+  </style>
+</head>
+<body>
+  <h2>실시간 테니스 대진표 (팀조합 중복방지 & 이름입력 통합)</h2>
+  <div id="settings"></div>
+  <div id="playerInputs"></div>
+  <div id="main"></div>
+<script>
+const NUM_PLAYERS = 10;
+const NUM_ROUNDS = 5;
+let playerNames = Array.from({length: NUM_PLAYERS}, (_, i) => `${i+1}번`);
+const restPlayers = [
+  [0, 9], [1, 8], [2, 7], [3, 6], [4, 5]
+];
+let settings = {
+  place: "",
+  courtA: "코트A",
+  courtB: "코트B"
+};
+let results = Array.from({length:NUM_ROUNDS},()=>({
+  courtA: { winner:'' },
+  courtB: { winner:'' }
+}));
+let matchups = Array(NUM_ROUNDS).fill(null).map(()=>({
+  courtA: {team1:[], team2:[]},
+  courtB: {team1:[], team2:[]}
+}));
+
+function assignFirstRound() {
+  const rest = restPlayers[0];
+  const available = Array.from({length:NUM_PLAYERS}, (_,i)=>i).filter(i=>!rest.includes(i));
+  const sorted = [...available].sort((a,b)=>a-b);
+  matchups[0] = {
+    courtA: {team1:[sorted[0],sorted[1]], team2:[sorted[2],sorted[3]]},
+    courtB: {team1:[sorted[4],sorted[5]], team2:[sorted[6],sorted[7]]}
+  };
+}
+
+function getTopPlayers(players, n=1) {
+  return [...players].sort((a,b)=>a-b).slice(0,n);
+}
+function teamKey(team) {
+  return [...team].sort((a,b)=>a-b).join('-');
+}
+
+function safeTeams(courtPlayers, forbiddenTeamKeys) {
+  const ps = courtPlayers;
+  const combs = [
+    [[ps[0],ps[1]],[ps[2],ps[3]]],
+    [[ps[0],ps[2]],[ps[1],ps[3]]],
+    [[ps[0],ps[3]],[ps[1],ps[2]]]
+  ];
+  for (let c of combs) {
+    let overlap = false;
+    for (let t of c) if (forbiddenTeamKeys.has(teamKey(t))) overlap = true;
+    if (!overlap) return c;
+  }
+  return combs[0];
+}
+
+function computeNextMatchups(round) {
+  if (round === 0) return;
+  const prev = matchups[round-1];
+  const prevRest = restPlayers[round-1];
+  const curRest = restPlayers[round];
+  const available = Array.from({length:playerNames.length}, (_,i)=>i).filter(i=>!curRest.includes(i));
+  let prevA_win = [], prevA_lose = [], prevB_win = [], prevB_lose = [];
+  let resA = results[round-1].courtA;
+  if(resA.winner==='1') { prevA_win = prev.courtA.team1; prevA_lose = prev.courtA.team2; }
+  else if(resA.winner==='2') { prevA_win = prev.courtA.team2; prevA_lose = prev.courtA.team1; }
+  let resB = results[round-1].courtB;
+  if(resB.winner==='1') { prevB_win = prev.courtB.team1; prevB_lose = prev.courtB.team2; }
+  else if(resB.winner==='2') { prevB_win = prev.courtB.team2; prevB_lose = prev.courtB.team1; }
+
+  function pickForGroup(group) {
+    let actual = group.filter(p=>!curRest.includes(p));
+    let need = group.length - actual.length;
+    if(need > 0) {
+      let prevRestAvailable = prevRest.filter(p=>available.includes(p));
+      actual = actual.concat(getTopPlayers(prevRestAvailable, need));
+    }
+    return actual;
+  }
+  let aWinners = pickForGroup(prevA_win);
+  let aLosers  = pickForGroup(prevA_lose);
+  let bWinners = pickForGroup(prevB_win);
+  let bLosers  = pickForGroup(prevB_lose);
+
+  // 한 라운드 내 중복 없이 배정
+  let used = [];
+  let courtAplayers = [...aWinners, ...bWinners].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i));
+  courtAplayers = getTopPlayers(courtAplayers, 4); used = [...courtAplayers];
+  let fillA = available.filter(i=>!used.includes(i));
+  while (courtAplayers.length < 4 && fillA.length > 0) { courtAplayers.push(fillA[0]); used.push(fillA[0]); fillA = fillA.slice(1);}
+  let courtBplayers = [...aLosers, ...bLosers].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i) && !used.includes(i));
+  courtBplayers = getTopPlayers(courtBplayers, 4); used = used.concat(courtBplayers);
+  let fillB = available.filter(i=>!used.includes(i));
+  while (courtBplayers.length < 4 && fillB.length > 0) { courtBplayers.push(fillB[0]); used.push(fillB[0]); fillB = fillB.slice(1);}
+  let courtA_sorted = getTopPlayers(courtAplayers, 4);
+  let courtB_sorted = getTopPlayers(courtBplayers, 4);
+
+  // 전 라운드 팀 저장
+  let prevTeamsA = [], prevTeamsB = [];
+  if (matchups[round-1] && matchups[round-1].courtA.team1.length === 2 && matchups[round-1].courtA.team2.length === 2)
+    prevTeamsA = [matchups[round-1].courtA.team1, matchups[round-1].courtA.team2];
+  if (matchups[round-1] && matchups[round-1].courtB.team1.length === 2 && matchups[round-1].courtB.team2.length === 2)
+    prevTeamsB = [matchups[round-1].courtB.team1, matchups[round-1].courtB.team2];
+
+  // 금지키 설정(모든 크로스+동일코트 중복방지)
+  let forbiddenA = new Set(), forbiddenB = new Set();
+  prevTeamsA.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
+  prevTeamsB.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
+
+  let [a_t1, a_t2] = safeTeams(courtA_sorted, forbiddenA);
+  let [b_t1, b_t2] = safeTeams(courtB_sorted, forbiddenB);
+
+  matchups[round] = {
+    courtA: {team1: a_t1, team2: a_t2},
+    courtB: {team1: b_t1, team2: b_t2}
+  };
+}
+
+function autoUpdateMatchups() {
+  assignFirstRound();
+  for(let r=1; r<NUM_ROUNDS; r++) {
+    let prevResA = results[r-1].courtA.winner;
+    let prevResB = results[r-1].courtB.winner;
+    if(prevResA && prevResB) computeNextMatchups(r);
+    else matchups[r] = {courtA:{team1:[],team2:[]}, courtB:{team1:[],team2:[]}};
+  }
+}
+
+function renderPlayerInputs() {
+  let html = `<div class="player-list">
+    <strong>선수 이름 (쉼표로 구분):</strong><br>
+    <input type="text" value="${playerNames.join(',')}" onchange="setPlayerNames(this.value)">
+    <div class="player-preview">[ 현재 선수명: ${playerNames.map((name,i)=>name+`(${i+1})`).join(', ')} ]</div>
+    <span style="font-size:0.93em;color:#666;">* 10명까지 입력, 초과 시 앞 10명만 사용</span>
+  </div>`;
+  document.getElementById('playerInputs').innerHTML = html;
+}
+
+function renderSettings() {
+  let html = `<div class="settings">
+    <label>장소:
+      <input type="text" value="${settings.place}" onchange="setSettings('place', this.value)">
+    </label>
+    <label>코트A 이름:
+      <input type="text" value="${settings.courtA}" onchange="setSettings('courtA', this.value)">
+    </label>
+    <label>코트B 이름:
+      <input type="text" value="${settings.courtB}" onchange="setSettings('courtB', this.value)">
+    </label>
+  </div>`;
+  document.getElementById('settings').innerHTML = html;
+}
+
+window.setWinner = function(roundIdx, court, value) {
+  if(court==='A') results[roundIdx].courtA.winner = value;
+  else results[roundIdx].courtB.winner = value;
+  autoUpdateMatchups();
+  render();
+};
+window.setPlayerNames = function(val) {
+  playerNames = val.split(',').map(s=>s.trim()).filter(Boolean);
+  while (playerNames.length < NUM_PLAYERS) playerNames.push(`${playerNames.length+1}번`);
+  playerNames = playerNames.slice(0, NUM_PLAYERS);
+  autoUpdateMatchups();
+  render();
+};
+window.setSettings = function(key, value) {
+  settings[key] = value;
+  render();
+};
+
+function render() {
+  renderSettings();
+  renderPlayerInputs();
+  let html = `<h3 style="margin-bottom:0">${settings.place?settings.place:''}</h3>`;
+  for(let round=0; round<NUM_ROUNDS; round++) {
+    const rest = restPlayers[round].map(i=>playerNames[i]).join(', ');
+    html += `<h3 style="margin-top:2em">${round+1}라운드 <span style="font-size:0.9em;">(휴식: ${rest})</span></h3>
+      <table>
+        <tr>
+          <th>코트</th>
+          <th>팀1</th>
+          <th>팀2</th>
+          <th>승리팀</th>
+        </tr>`;
+    ['A','B'].forEach(court => {
+      let match = matchups[round][`court${court}`];
+      let courtName = (court==='A') ? settings.courtA : settings.courtB;
+      let t1 = match.team1.map(i=>playerNames[i]).join(', ');
+      let t2 = match.team2.map(i=>playerNames[i]).join(', ');
+      html += `<tr class="court${court}">
+        <td>${courtName}</td>
+        <td>${t1}</td>
+        <td>${t2}</td>
+        <td>
+          <select onchange="setWinner(${round},'${court}',this.value)" ${match.team1.length<2?'disabled':''}>
+            <option value="">-</option>
+            <option value="1" ${results[round][`court${court}`].winner==='1'?'selected':''}>팀1</option>
+            <option value="2" ${results[round][`court${court}`].winner==='2'?'selected':''}>팀2</option>
+          </select>
+        </td>
+      </tr>`;
+    });
+    html += `</table>`;
+  }
+  document.getElementById('main').innerHTML = html;
+}
+
+autoUpdateMatchups();
+render();
+</script>
+</body>
+</html>
