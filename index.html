@@ -19,9 +19,37 @@
 </head>
 <body>
   <h2>실시간 테니스 대진표 (정보 저장 기능)</h2>
+  <div class="btnbox">
+    <button onclick="saveDataToCloud()">저장하기 (클라우드)</button>
+    <button onclick="loadDataFromCloud(true)">불러오기 (클라우드)</button>
+    <span style="color:#888;font-size:0.93em;">(실시간 동기화는 별도로)</span>
+  </div>
   <div id="settings"></div>
   <div id="playerInputs"></div>
   <div id="main"></div>
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBuPKpGMRHSYw5TB1HGI4DIlmfDC8LQjI",
+    authDomain: "tennisgame-47.firebaseapp.com",
+    projectId: "tennisgame-47",
+    storageBucket: "tennisgame-47.firebasestorage.app",
+    messagingSenderId: "973659600083",
+    appId: "1:973659600083:web:141ae5b5d602cf784f5026",
+    measurementId: "G-KKEYH3XNVW"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 <script>
 const NUM_PLAYERS = 10;
 const NUM_ROUNDS = 5;
@@ -64,6 +92,27 @@ if (saved) {
   if (Array.isArray(saved.results) && saved.results.length === NUM_ROUNDS) {
     results = saved.results;
   }
+}
+
+function saveDataToCloud() {
+  db.collection("tennis").doc("shared").set({
+    playerNames, settings, results, updated: Date.now()
+  });
+}
+// Firestore에서 불러오기(페이지 진입시 1회, 혹은 실시간 리스너로)
+function loadDataFromCloud(callback) {
+  db.collection("tennis").doc("shared")
+    .onSnapshot(doc => {
+      if (doc.exists) {
+        const d = doc.data();
+        playerNames = d.playerNames || playerNames;
+        settings = d.settings || settings;
+        results = d.results || results;
+        autoUpdateMatchups();
+        render();
+        if (callback) callback();
+      }
+    });
 }
 
 function assignFirstRound() {
