@@ -2,62 +2,28 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>테니스 대진표 - 유저뷰(모바일최적화)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes">
-  <link href="https://fonts.googleapis.com/css?family=Noto+Sans+KR:400,700&display=swap" rel="stylesheet">
+  <title>테니스 대진표 (정보 저장 기능)</title>
   <style>
-    html, body { margin:0; padding:0; }
-    body { font-family:'Noto Sans KR', Arial, sans-serif; margin:0; background: #f5f8fa; color:#222; }
-    .main-wrap { max-width: 700px; margin:0 auto; padding:16px 2vw 24px 2vw; }
-    h2 { color:#0077b6; margin-bottom:0.7em; font-size:1.6em;}
-    .place-title { font-size:1.11em; color:#444; margin-bottom:1.5em;}
-    .player-box { background:#e3eef7; border-radius: 0.7em; padding: 1.2em 1.2em; margin-bottom:1.7em; }
-    .player-box strong {color:#18529d;}
-    .player-list-ul { margin:0.7em 0 0 0; padding-left:1.4em;}
-    .court-title { font-weight:bold; color:#18529d;}
-    .rest-note { color:#888; font-size:0.98em; margin-left:0.6em;}
-    .winner { font-weight: bold; color: #008542; letter-spacing:1px;}
-    .updated {font-size:0.99em; color:#888; margin-bottom:1.3em;}
-    .round-title {margin:2.2em 0 0.6em 0; font-size:1.16em;}
-    .scroll-table { overflow-x:auto; margin-bottom:1.5em; }
-    table { width:100%; min-width:460px; border-radius:0.7em; box-shadow:0 1.5px 8px #ccd6df33; background:white;}
-    th, td { border:1px solid #e2e8f0; padding:9px 7px; text-align:center;}
-    th { background:#f2f7fb; color:#18529d; font-size:0.98em;}
-    td.team { font-weight:500;}
-    .courtA-row { background: #f7fafc;}
-    .courtB-row { background: #fff8ed;}
-    /* 모바일 반응형 */
-    @media (max-width:600px) {
-      .main-wrap { max-width:100vw; padding:9px 2vw 14vw 2vw; }
-      .player-box { padding:0.75em 0.6em; font-size:0.97em;}
-      h2 { font-size:1.19em;}
-      .round-title { font-size:1em;}
-      table, th, td { font-size:0.93em;}
-    }
-    @media (max-width:420px) {
-      .main-wrap {padding:4px 0vw 12vw 0vw;}
-      .player-list-ul {padding-left:1.1em;}
-    }
+    body { font-family: Arial; margin: 2rem; }
+    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 8px; }
+    th { background: #f6f6f6; }
+    .courtA { background: #e0f7fa; }
+    .courtB { background: #fff3e0; }
+    input[type=text] { width: 350px; padding: 2px 4px;}
+    .settings { margin-bottom: 2em; }
+    .settings label { margin-right: 1.2em; }
+    .player-list { margin-bottom: 1.5em; }
+    .player-preview { font-size: 0.97em; color: #333; margin-bottom: 0.5em; }
   </style>
-  <!-- Firebase JS SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-<div class="main-wrap">
-  <h2>테니스 대진표 <span style="font-size:0.63em; color:#77a;">(읽기전용)</span></h2>
-  <div id="updated"></div>
-  <div id="placeTitle"></div>
-  <div id="playerView"></div>
-  <div id="main"></div>
-</div>
-<script>
-const NUM_PLAYERS = 10;
-const NUM_ROUNDS = 5;
-const REST_PLAYERS = [
-  [0, 9], [1, 8], [2, 7], [3, 6], [4, 5]
-];
-// ====== Firebase 설정 (본인 정보로 교체) ======
+ <script type="module">
+        // Firebase 앱 초기화 및 Firestore 서비스 임포트
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        // 여러분의 Firebase 프로젝트 설정
+        // 이 정보는 Firebase Console > 프로젝트 설정 > 일반에서 찾을 수 있습니다.
         const firebaseConfig = {
           apiKey: "AIzaSyBBuPKpGMRHSYw5TB1HGI4DIlmfDC8LQjI",
           authDomain: "tennisgame-47.firebaseapp.com",
@@ -67,196 +33,335 @@ const REST_PLAYERS = [
           appId: "1:973659600083:web:141ae5b5d602cf784f5026",
           measurementId: "G-KKEYH3XNVW"
         };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-// ============================================
 
-// DB 실시간 데이터 구독
-db.collection("tennis").doc("shared")
-  .onSnapshot(doc => {
-    if (doc.exists) {
-      const d = doc.data();
-      renderAll(
-        d.playerNames||[], d.settings||{}, d.results||[], d.updated
-      );
-    } else {
-      renderNoData();
-    }
-  });
+        // Firebase 앱 초기화
+        const app = initializeApp(firebaseConfig);
+        // Firestore 인스턴스 가져오기
+        const db = getFirestore(app);
 
-function renderAll(playerNames, settings, results, updated) {
-  renderUpdated(updated);
-  renderPlace(settings, playerNames);
-  renderPlayers(playerNames);
-  renderRounds(playerNames, settings, results);
-}
-function renderNoData() {
-  document.getElementById('updated').innerHTML = '';
-  document.getElementById('placeTitle').innerHTML = '';
-  document.getElementById('playerView').innerHTML = '<div style="padding:2em;color:#888;">저장된 대진표 데이터가 없습니다.</div>';
-  document.getElementById('main').innerHTML = '';
-}
-function renderUpdated(updated) {
-  let html = '';
-  if (updated) {
-    const date = new Date(updated);
-    html = `<div class="updated">최근 저장: ${date.toLocaleString()}</div>`;
-  }
-  document.getElementById('updated').innerHTML = html;
-}
-function renderPlace(settings, playerNames) {
-  let place = settings.place||'';
-  let txt = '';
-  if (place) txt += `<div class="place-title"><b>장소</b> : ${place}</div>`;
-  document.getElementById('placeTitle').innerHTML = txt;
-}
-function renderPlayers(playerNames) {
-  playerNames = playerNames||[];
-  let html = `<div class="player-box">
-    <strong>선수 명단 (${playerNames.length}명)</strong>
-    <ul class="player-list-ul">
-      ${playerNames.map((n,i)=>`<li>${i+1}. ${n}</li>`).join('\n')}
-    </ul>
-  </div>`;
-  document.getElementById('playerView').innerHTML = html;
-}
-function getCourtName(settings, court) {
-  return (court==='A' ? (settings.courtA||'코트A') : (settings.courtB||'코트B'));
-}
-function renderRounds(playerNames, settings, results) {
-  let html = '';
-  for(let round=0; round<NUM_ROUNDS; round++) {
-    const rest = (REST_PLAYERS[round]||[]).map(i=>playerNames[i]||`${i+1}번`).join(', ');
-    html += `<div class="round-title">${round+1}라운드
-      <span class="rest-note">(휴식: ${rest})</span>
+        // HTML 요소 참조
+        const outputDiv = document.getElementById('output');
+        const writeDataBtn = document.getElementById('writeDataBtn');
+        const readDataBtn = document.getElementById('readDataBtn');
+
+        // Firestore에 데이터 쓰는 함수
+        async function writeTestData() {
+            try {
+                // 'test_collection' 컬렉션 안에 'my_test_document'라는 문서 생성 또는 업데이트
+                const docRef = doc(db, "tennis", "shared");
+                await setDoc(docRef, {
+                    playerNames: playerNames,
+                    settings: settings,
+                    results: results,
+                    updated: new Date()
+                });
+                outputDiv.innerHTML = "✅ Firestore에 데이터 쓰기 성공! (tennis)";
+                console.log("Document successfully written!");
+            } catch (error) {
+                outputDiv.innerHTML = `❌ Firestore 데이터 쓰기 실패: ${error.message}`;
+                console.error("Error writing document: ", error);
+            }
+        }
+
+        // Firestore에서 데이터 읽는 함수
+        async function readTestData() {
+            try {
+                const docRef = doc(db, "tennis", "shared");
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const d = docSnap.data();
+                    playerNames = d.playerNames || playerNames;
+                    settings = d.settings || settings;
+                    results = d.results || results;
+                    autoUpdateMatchups();
+                    render();
+
+                    outputDiv.innerHTML = `✅ Firestore에서 데이터 읽기 성공! <br>내용: ${JSON.stringify(d, null, 2)}`;
+                    console.log("Document data:", d);
+                } else {
+                    // 문서가 없을 경우
+                    outputDiv.innerHTML = "⚠️ 문서 (test_collection/my_test_document) 가 존재하지 않습니다. 먼저 데이터를 써보세요!";
+                    console.log("No such document!");
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `❌ Firestore 데이터 읽기 실패: ${error.message}`;
+                console.error("Error reading document: ", error);
+            }
+        }
+
+        // 버튼 클릭 이벤트 리스너 추가
+        writeDataBtn.addEventListener('click', writeTestData);
+        readDataBtn.addEventListener('click', readTestData);
+
+    </script>
+   <h1>🎾 Firebase Firestore 테스트 🎾</h1>
+    <p>아래 버튼을 눌러 Firebase Firestore에 데이터를 쓰고 읽는 것을 테스트해보세요.</p>
+
+    <button id="writeDataBtn">Firestore에 데이터 쓰기</button>
+    <button id="readDataBtn">Firestore에서 데이터 읽기</button>
+
+    <div id="output">
+        여기에 Firestore 작업 결과가 표시됩니다...
     </div>
-    <div class="scroll-table">
-    <table>
-      <tr>
-        <th>코트</th>
-        <th>팀1</th>
-        <th>팀2</th>
-        <th>승리팀</th>
-      </tr>`;
+  <h2>실시간 테니스 대진표 (정보 저장 기능)</h2>
+  <div class="btnbox">
+    <button onclick="saveDataToCloud()">저장하기 (클라우드)</button>
+    <button onclick="loadDataFromCloud(true)">불러오기 (클라우드)</button>
+    <span style="color:#888;font-size:0.93em;">(실시간 동기화는 별도로)</span>
+  </div>
+  <div id="settings"></div>
+  <div id="playerInputs"></div>
+  <div id="main"></div>
+<script>
+const NUM_PLAYERS = 10;
+const NUM_ROUNDS = 5;
+const REST_PLAYERS = [
+  [0, 9], [1, 8], [2, 7], [3, 6], [4, 5]
+];
+const STORAGE_KEY = "tennis_save_2406";
+
+function loadData() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch { return null; }
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    playerNames, settings, results
+  }));
+}
+
+let playerNames = Array.from({length: NUM_PLAYERS}, (_, i) => `${i+1}번`);
+let settings = { place: "", courtA: "코트A", courtB: "코트B" };
+let results = Array.from({length:NUM_ROUNDS},()=>({
+  courtA: { winner:'' },
+  courtB: { winner:'' }
+}));
+
+let matchups = Array(NUM_ROUNDS).fill(null).map(()=>({
+  courtA: {team1:[], team2:[]},
+  courtB: {team1:[], team2:[]}
+}));
+
+// 데이터 복원
+const saved = loadData();
+if (saved) {
+  playerNames = Array.isArray(saved.playerNames) ? saved.playerNames.slice(0, NUM_PLAYERS) : playerNames;
+  while (playerNames.length < NUM_PLAYERS) playerNames.push(`${playerNames.length+1}번`);
+  settings = Object.assign(settings, saved.settings);
+  if (Array.isArray(saved.results) && saved.results.length === NUM_ROUNDS) {
+    results = saved.results;
+  }
+}
+
+function saveDataToCloud() {
+  db.collection("tennis").doc("shared").set({
+    playerNames, settings, results, updated: Date.now()
+  });
+}
+// Firestore에서 불러오기(페이지 진입시 1회, 혹은 실시간 리스너로)
+function loadDataFromCloud(callback) {
+  db.collection("tennis").doc("shared")
+    .onSnapshot(doc => {
+      if (doc.exists) {
+        const d = doc.data();
+        playerNames = d.playerNames || playerNames;
+        settings = d.settings || settings;
+        results = d.results || results;
+        autoUpdateMatchups();
+        render();
+        if (callback) callback();
+      }
+    });
+}
+
+function assignFirstRound() {
+  const rest = REST_PLAYERS[0];
+  const available = Array.from({length:playerNames.length}, (_,i)=>i).filter(i=>!rest.includes(i));
+  const sorted = [...available].sort((a,b)=>a-b);
+  matchups[0] = {
+    courtA: {team1:[sorted[0],sorted[1]], team2:[sorted[2],sorted[3]]},
+    courtB: {team1:[sorted[4],sorted[5]], team2:[sorted[6],sorted[7]]}
+  };
+}
+function getTopPlayers(players, n=1) {
+  return [...players].sort((a,b)=>a-b).slice(0,n);
+}
+function teamKey(team) {
+  return [...team].sort((a,b)=>a-b).join('-');
+}
+function safeTeams(courtPlayers, forbiddenTeamKeys) {
+  const ps = courtPlayers;
+  const combs = [
+    [[ps[0],ps[1]],[ps[2],ps[3]]],
+    [[ps[0],ps[2]],[ps[1],ps[3]]],
+    [[ps[0],ps[3]],[ps[1],ps[2]]]
+  ];
+  for (let c of combs) {
+    let overlap = false;
+    for (let t of c) if (forbiddenTeamKeys.has(teamKey(t))) overlap = true;
+    if (!overlap) return c;
+  }
+  return combs[0];
+}
+function computeNextMatchups(round) {
+  if (round === 0) return;
+  const prev = matchups[round-1];
+  const prevRest = REST_PLAYERS[round-1];
+  const curRest = REST_PLAYERS[round];
+  const available = Array.from({length:playerNames.length}, (_,i)=>i).filter(i=>!curRest.includes(i));
+  let prevA_win = [], prevA_lose = [], prevB_win = [], prevB_lose = [];
+  let resA = results[round-1].courtA;
+  if(resA.winner==='1') { prevA_win = prev.courtA.team1; prevA_lose = prev.courtA.team2; }
+  else if(resA.winner==='2') { prevA_win = prev.courtA.team2; prevA_lose = prev.courtA.team1; }
+  let resB = results[round-1].courtB;
+  if(resB.winner==='1') { prevB_win = prev.courtB.team1; prevB_lose = prev.courtB.team2; }
+  else if(resB.winner==='2') { prevB_win = prev.courtB.team2; prevB_lose = prev.courtB.team1; }
+  function pickForGroup(group) {
+    let actual = group.filter(p=>!curRest.includes(p));
+    let need = group.length - actual.length;
+    if(need > 0) {
+      let prevRestAvailable = prevRest.filter(p=>available.includes(p));
+      actual = actual.concat(getTopPlayers(prevRestAvailable, need));
+    }
+    return actual;
+  }
+  let aWinners = pickForGroup(prevA_win);
+  let aLosers  = pickForGroup(prevA_lose);
+  let bWinners = pickForGroup(prevB_win);
+  let bLosers  = pickForGroup(prevB_lose);
+  // 한 라운드 내 중복 없이 배정
+  let used = [];
+  let courtAplayers = [...aWinners, ...bWinners].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i));
+  courtAplayers = getTopPlayers(courtAplayers, 4); used = [...courtAplayers];
+  let fillA = available.filter(i=>!used.includes(i));
+  while (courtAplayers.length < 4 && fillA.length > 0) { courtAplayers.push(fillA[0]); used.push(fillA[0]); fillA = fillA.slice(1);}
+  let courtBplayers = [...aLosers, ...bLosers].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i) && !used.includes(i));
+  courtBplayers = getTopPlayers(courtBplayers, 4); used = used.concat(courtBplayers);
+  let fillB = available.filter(i=>!used.includes(i));
+  while (courtBplayers.length < 4 && fillB.length > 0) { courtBplayers.push(fillB[0]); used.push(fillB[0]); fillB = fillB.slice(1);}
+  let courtA_sorted = getTopPlayers(courtAplayers, 4);
+  let courtB_sorted = getTopPlayers(courtBplayers, 4);
+
+  // 전 라운드 팀 저장
+  let prevTeamsA = [], prevTeamsB = [];
+  if (matchups[round-1] && matchups[round-1].courtA.team1.length === 2 && matchups[round-1].courtA.team2.length === 2)
+    prevTeamsA = [matchups[round-1].courtA.team1, matchups[round-1].courtA.team2];
+  if (matchups[round-1] && matchups[round-1].courtB.team1.length === 2 && matchups[round-1].courtB.team2.length === 2)
+    prevTeamsB = [matchups[round-1].courtB.team1, matchups[round-1].courtB.team2];
+
+  // 금지키 설정(모든 크로스+동일코트 중복방지)
+  let forbiddenA = new Set(), forbiddenB = new Set();
+  prevTeamsA.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
+  prevTeamsB.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
+
+  let [a_t1, a_t2] = safeTeams(courtA_sorted, forbiddenA);
+  let [b_t1, b_t2] = safeTeams(courtB_sorted, forbiddenB);
+
+  matchups[round] = {
+    courtA: {team1: a_t1, team2: a_t2},
+    courtB: {team1: b_t1, team2: b_t2}
+  };
+}
+
+function autoUpdateMatchups() {
+  assignFirstRound();
+  for(let r=1; r<NUM_ROUNDS; r++) {
+    let prevResA = results[r-1].courtA.winner;
+    let prevResB = results[r-1].courtB.winner;
+    if(prevResA && prevResB) computeNextMatchups(r);
+    else matchups[r] = {courtA:{team1:[],team2:[]}, courtB:{team1:[],team2:[]}};
+  }
+}
+
+function renderPlayerInputs() {
+  let html = `<div class="player-list">
+    <strong>선수 이름 (쉼표로 구분):</strong><br>
+    <input type="text" value="${playerNames.join(',')}" onchange="setPlayerNames(this.value)">
+    <div class="player-preview">[ 현재 선수명: ${playerNames.map((name,i)=>name+`(${i+1})`).join(', ')} ]</div>
+    <span style="font-size:0.93em;color:#666;">* 10명까지 입력, 초과 시 앞 10명만 사용</span>
+  </div>`;
+  document.getElementById('playerInputs').innerHTML = html;
+}
+
+function renderSettings() {
+  let html = `<div class="settings">
+    <label>장소:
+      <input type="text" value="${settings.place}" onchange="setSettings('place', this.value)">
+    </label>
+    <label>코트A 이름:
+      <input type="text" value="${settings.courtA}" onchange="setSettings('courtA', this.value)">
+    </label>
+    <label>코트B 이름:
+      <input type="text" value="${settings.courtB}" onchange="setSettings('courtB', this.value)">
+    </label>
+  </div>`;
+  document.getElementById('settings').innerHTML = html;
+}
+
+window.setWinner = function(roundIdx, court, value) {
+  if(court==='A') results[roundIdx].courtA.winner = value;
+  else results[roundIdx].courtB.winner = value;
+  saveData(); // <- 저장
+  autoUpdateMatchups();
+  render();
+};
+window.setPlayerNames = function(val) {
+  playerNames = val.split(',').map(s=>s.trim()).filter(Boolean);
+  while (playerNames.length < NUM_PLAYERS) playerNames.push(`${playerNames.length+1}번`);
+  playerNames = playerNames.slice(0, NUM_PLAYERS);
+  saveData(); // <- 저장
+  autoUpdateMatchups();
+  render();
+};
+window.setSettings = function(key, value) {
+  settings[key] = value;
+  saveData(); // <- 저장
+  render();
+};
+
+function render() {
+  renderSettings();
+  renderPlayerInputs();
+  let html = `<h3 style="margin-bottom:0">${settings.place?settings.place:''}</h3>`;
+  for(let round=0; round<NUM_ROUNDS; round++) {
+    const rest = REST_PLAYERS[round].map(i=>playerNames[i]).join(', ');
+    html += `<h3 style="margin-top:2em">${round+1}라운드 <span style="font-size:0.9em;">(휴식: ${rest})</span></h3>
+      <table>
+        <tr>
+          <th>코트</th>
+          <th>팀1</th>
+          <th>팀2</th>
+          <th>승리팀</th>
+        </tr>`;
     ['A','B'].forEach(court => {
-      let courtName = getCourtName(settings, court);
-      let teams = getTeamsForRound(round, court, playerNames, results);
-      html += `<tr class="court${court}-row">
-        <td class="court-title">${courtName}</td>
-        <td class="team">${teams.t1}</td>
-        <td class="team">${teams.t2}</td>
-        <td>${teams.winner?`<span class="winner">${teams.winner}</span>`:''}</td>
+      let match = matchups[round][`court${court}`];
+      let courtName = (court==='A') ? settings.courtA : settings.courtB;
+      let t1 = match.team1.map(i=>playerNames[i]).join(', ');
+      let t2 = match.team2.map(i=>playerNames[i]).join(', ');
+      html += `<tr class="court${court}">
+        <td>${courtName}</td>
+        <td>${t1}</td>
+        <td>${t2}</td>
+        <td>
+          <select onchange="setWinner(${round},'${court}',this.value)" ${match.team1.length<2?'disabled':''}>
+            <option value="">-</option>
+            <option value="1" ${results[round][`court${court}`].winner==='1'?'selected':''}>팀1</option>
+            <option value="2" ${results[round][`court${court}`].winner==='2'?'selected':''}>팀2</option>
+          </select>
+        </td>
       </tr>`;
     });
-    html += `</table></div>`;
+    html += `</table>`;
   }
   document.getElementById('main').innerHTML = html;
 }
 
-// 팀 조합 정보 복원 (기존 html과 호환)
-function getTeamsForRound(round, court, playerNames, results) {
-  let matchups = getMatchupsAll(playerNames, results);
-  let team1 = matchups[round][`court${court}`].team1||[];
-  let team2 = matchups[round][`court${court}`].team2||[];
-  let t1 = team1.map(i=>playerNames[i]||`${i+1}번`).join(', ');
-  let t2 = team2.map(i=>playerNames[i]||`${i+1}번`).join(', ');
-  let wval = results[round] && results[round][`court${court}`] && results[round][`court${court}`].winner;
-  let winner = '';
-  if(wval==='1') winner = t1;
-  else if(wval==='2') winner = t2;
-  return { t1, t2, winner };
-}
-
-// 대진표 생성(동일 로직. 팀조합 중복 방지 등은 기존 방식과 일치)
-function getMatchupsAll(playerNames, results) {
-  let matchups = Array(NUM_ROUNDS).fill(null).map(()=>({
-    courtA: {team1:[], team2:[]},
-    courtB: {team1:[], team2:[]}
-  }));
-  function getTopPlayers(players, n=1) {
-    return [...players].sort((a,b)=>a-b).slice(0,n);
-  }
-  function teamKey(team) {
-    return [...team].sort((a,b)=>a-b).join('-');
-  }
-  function safeTeams(courtPlayers, forbiddenTeamKeys) {
-    const ps = courtPlayers;
-    const combs = [
-      [[ps[0],ps[1]],[ps[2],ps[3]]],
-      [[ps[0],ps[2]],[ps[1],ps[3]]],
-      [[ps[0],ps[3]],[ps[1],ps[2]]]
-    ];
-    for (let c of combs) {
-      let overlap = false;
-      for (let t of c) if (forbiddenTeamKeys.has(teamKey(t))) overlap = true;
-      if (!overlap) return c;
-    }
-    return combs[0];
-  }
-  const rest0 = REST_PLAYERS[0];
-  const available0 = Array.from({length:playerNames.length}, (_,i)=>i).filter(i=>!rest0.includes(i));
-  const sorted0 = [...available0].sort((a,b)=>a-b);
-  matchups[0] = {
-    courtA: {team1:[sorted0[0],sorted0[1]], team2:[sorted0[2],sorted0[3]]},
-    courtB: {team1:[sorted0[4],sorted0[5]], team2:[sorted0[6],sorted0[7]]}
-  };
-  for(let round=1; round<NUM_ROUNDS; round++) {
-    const prev = matchups[round-1];
-    const prevRest = REST_PLAYERS[round-1];
-    const curRest = REST_PLAYERS[round];
-    const available = Array.from({length:playerNames.length}, (_,i)=>i).filter(i=>!curRest.includes(i));
-    let prevA_win = [], prevA_lose = [], prevB_win = [], prevB_lose = [];
-    let resA = results[round-1]||{};
-    if(resA.courtA && resA.courtA.winner==='1') { prevA_win = prev.courtA.team1; prevA_lose = prev.courtA.team2; }
-    else if(resA.courtA && resA.courtA.winner==='2') { prevA_win = prev.courtA.team2; prevA_lose = prev.courtA.team1; }
-    let resB = results[round-1]||{};
-    if(resB.courtB && resB.courtB.winner==='1') { prevB_win = prev.courtB.team1; prevB_lose = prev.courtB.team2; }
-    else if(resB.courtB && resB.courtB.winner==='2') { prevB_win = prev.courtB.team2; prevB_lose = prev.courtB.team1; }
-    function pickForGroup(group) {
-      let actual = group.filter(p=>!curRest.includes(p));
-      let need = group.length - actual.length;
-      if(need > 0) {
-        let prevRestAvailable = prevRest.filter(p=>available.includes(p));
-        actual = actual.concat(getTopPlayers(prevRestAvailable, need));
-      }
-      return actual;
-    }
-    let aWinners = pickForGroup(prevA_win);
-    let aLosers  = pickForGroup(prevA_lose);
-    let bWinners = pickForGroup(prevB_win);
-    let bLosers  = pickForGroup(prevB_lose);
-    let used = [];
-    let courtAplayers = [...aWinners, ...bWinners].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i));
-    courtAplayers = getTopPlayers(courtAplayers, 4); used = [...courtAplayers];
-    let fillA = available.filter(i=>!used.includes(i));
-    while (courtAplayers.length < 4 && fillA.length > 0) { courtAplayers.push(fillA[0]); used.push(fillA[0]); fillA = fillA.slice(1);}
-    let courtBplayers = [...aLosers, ...bLosers].filter((v,i,arr)=>arr.indexOf(v)===i).filter(i=>available.includes(i) && !used.includes(i));
-    courtBplayers = getTopPlayers(courtBplayers, 4); used = used.concat(courtBplayers);
-    let fillB = available.filter(i=>!used.includes(i));
-    while (courtBplayers.length < 4 && fillB.length > 0) { courtBplayers.push(fillB[0]); used.push(fillB[0]); fillB = fillB.slice(1);}
-    let courtA_sorted = getTopPlayers(courtAplayers, 4);
-    let courtB_sorted = getTopPlayers(courtBplayers, 4);
-
-    let prevTeamsA = [], prevTeamsB = [];
-    if (matchups[round-1] && matchups[round-1].courtA.team1.length === 2 && matchups[round-1].courtA.team2.length === 2)
-      prevTeamsA = [matchups[round-1].courtA.team1, matchups[round-1].courtA.team2];
-    if (matchups[round-1] && matchups[round-1].courtB.team1.length === 2 && matchups[round-1].courtB.team2.length === 2)
-      prevTeamsB = [matchups[round-1].courtB.team1, matchups[round-1].courtB.team2];
-
-    let forbiddenA = new Set(), forbiddenB = new Set();
-    prevTeamsA.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
-    prevTeamsB.forEach(team => {forbiddenA.add(teamKey(team)); forbiddenB.add(teamKey(team));});
-
-    let [a_t1, a_t2] = safeTeams(courtA_sorted, forbiddenA);
-    let [b_t1, b_t2] = safeTeams(courtB_sorted, forbiddenB);
-
-    matchups[round] = {
-      courtA: {team1: a_t1, team2: a_t2},
-      courtB: {team1: b_t1, team2: b_t2}
-    };
-  }
-  return matchups;
-}
+autoUpdateMatchups();
+render();
 </script>
 </body>
 </html>
