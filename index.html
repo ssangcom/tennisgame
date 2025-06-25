@@ -3,38 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <title>테니스 대진표 (정보 저장 기능)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans+KR:400,700&display=swap" rel="stylesheet">
  <style>
     html, body { margin:0; padding:0; }
-    body { font-family:'Noto Sans KR', Arial, sans-serif; margin:0; background: #f5f8fa; color:#222; }
-    .main-wrap { max-width: 700px; margin:0 auto; padding:16px 2vw 24px 2vw; }
-    h2 { color:#0077b6; margin-bottom:0.7em; font-size:1.6em;}
-    .place-title { font-size:1.11em; color:#444; margin-bottom:1.5em;}
-    .player-box { background:#e3eef7; border-radius: 0.7em; padding: 1.2em 1.2em; margin-bottom:1.7em; }
+    body { font-family:'Noto Sans KR', Arial, sans-serif; margin:0; background: #f5f8fa; color:#222; font-size: 17px;}
+    .main-wrap { max-width: 700px; margin:0 auto; padding:20px 2vw 30px 2vw; }
+    h1, h2, h3 { font-family:'Noto Sans KR', Arial, sans-serif; }
+    h1 { font-size:1.7em; }
+    h2 { color:#0077b6; margin-bottom:0.9em; font-size:1.25em;}
+    .place-title { font-size:1.12em; color:#444; margin-bottom:1.4em;}
+    .player-box { background:#e3eef7; border-radius: 0.8em; padding: 1.2em 1em; margin-bottom:1.5em; }
     .player-box strong {color:#18529d;}
-    .player-list-ul { margin:0.7em 0 0 0; padding-left:1.4em;}
+    .player-list-ul { margin:0.8em 0 0 0; padding-left:1.2em; }
     .court-title { font-weight:bold; color:#18529d;}
-    .rest-note { color:#888; font-size:0.98em; margin-left:0.6em;}
+    .rest-note { color:#888; font-size:0.97em; margin-left:0.6em;}
     .winner { font-weight: bold; color: #008542; letter-spacing:1px;}
-    .updated {font-size:0.99em; color:#888; margin-bottom:1.3em;}
-    .round-title {margin:2.2em 0 0.6em 0; font-size:1.16em;}
-    .scroll-table { overflow-x:auto; margin-bottom:1.5em; }
-    table { width:100%; min-width:460px; border-radius:0.7em; box-shadow:0 1.5px 8px #ccd6df33; background:white;}
-    th, td { border:1px solid #e2e8f0; padding:9px 7px; text-align:center;}
-    th { background:#f2f7fb; color:#18529d; font-size:0.98em;}
+    .updated {font-size:1em; color:#888; margin-bottom:1.2em;}
+    .round-title {margin:2.0em 0 0.7em 0; font-size:1.14em;}
+    .scroll-table { overflow-x:auto; margin-bottom:1.4em; }
+    table { width:100%; min-width:440px; border-radius:0.8em; box-shadow:0 1.5px 8px #ccd6df33; background:white;}
+    th, td { border:1px solid #e2e8f0; padding:12px 8px; text-align:center;}
+    th { background:#f2f7fb; color:#18529d; font-size:1em;}
     td.team { font-weight:500;}
-    .courtA-row { background: #f7fafc;}
-    .courtB-row { background: #fff8ed;}
-    /* 모바일 반응형 */
-    @media (max-width:600px) {
-      .main-wrap { max-width:100vw; padding:9px 2vw 14vw 2vw; }
-      .player-box { padding:0.75em 0.6em; font-size:0.97em;}
-      h2 { font-size:1.19em;}
-      .round-title { font-size:1em;}
-      table, th, td { font-size:0.93em;}
+    .courtA { background: #f7fafc;}
+    .courtB { background: #fff8ed;}
+    .settings label { font-size:1.04em; margin-right:1.3em; }
+    input[type=text] {
+      font-size: 1.09em; padding: 8px 6px; border-radius: 8px; border:1.5px solid #aac6de; margin: 5px 0;
+      background: #f7fbfe;
+      min-width:110px; max-width:230px;
     }
-    @media (max-width:420px) {
-      .main-wrap {padding:4px 0vw 12vw 0vw;}
-      .player-list-ul {padding-left:1.1em;}
+    select {
+      font-size:1em; padding: 6px 10px; border-radius: 7px; border: 1.2px solid #97b5c4; background:#f5fcff;
+      min-width:60px;
+    }
+    button {
+      font-size: 1.08em;
+      padding: 10px 24px;
+      margin-right: 8px;
+      margin-top: 7px;
+      margin-bottom: 14px;
+      background: #eaf3fa;
+      color: #0077b6;
+      border:1.3px solid #b8d7ee;
+      border-radius:7px;
+      cursor:pointer;
+      font-family:'Noto Sans KR', Arial, sans-serif;
+      box-shadow: 0 1px 6px #ccd6df22;
+    }
+    .player-preview { font-size: 0.98em; color:#444; margin: 5px 0 2px 0; }
+    .player-list {margin-bottom: 20px;}
+    @media (max-width:600px) {
+      body { font-size: 16px; }
+      .main-wrap { max-width:100vw; padding:8px 2vw 14vw 2vw; }
+      .player-box { padding:0.8em 0.7em; font-size:0.99em;}
+      h1 { font-size:1.18em;}
+      h2 { font-size:1em;}
+      .round-title { font-size:1em;}
+      table, th, td { font-size:0.97em;}
+      input[type=text], select, button { font-size:1em;}
+      th, td { padding:9px 5px;}
+    }
+    @media (max-width:430px) {
+      .main-wrap {padding:2px 0vw 10vw 0vw;}
+      .player-list-ul {padding-left:0.8em;}
+      table { min-width:350px;}
     }
   </style>
 </head>
@@ -99,7 +133,8 @@
                     autoUpdateMatchups();
                     render();
 
-                    outputDiv.innerHTML = `✅ Firestore에서 데이터 읽기 성공! <br>내용: ${JSON.stringify(d, null, 2)}`;
+                    outputDiv.innerHTML = `✅ Firestore에서 데이터 읽기 성공!`;
+                    // outputDiv.innerHTML = `✅ Firestore에서 데이터 읽기 성공! <br>내용: ${JSON.stringify(d, null, 2)}`;
                     console.log("Document data:", d);
                 } else {
                     // 문서가 없을 경우
@@ -309,10 +344,10 @@ function renderSettings() {
     <label>장소:
       <input type="text" value="${settings.place}" onchange="setSettings('place', this.value)">
     </label>
-    <label>코트A 이름:
+    <label><br>코트A 이름:
       <input type="text" value="${settings.courtA}" onchange="setSettings('courtA', this.value)">
     </label>
-    <label>코트B 이름:
+    <label><br>코트B 이름:
       <input type="text" value="${settings.courtB}" onchange="setSettings('courtB', this.value)">
     </label>
   </div>`;
