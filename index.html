@@ -3,17 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>테니스 대진표 (정보 저장 기능)</title>
-  <style>
-    body { font-family: Arial; margin: 2rem; }
-    table, th, td { border: 1px solid #aaa; border-collapse: collapse; padding: 8px; }
-    th { background: #f6f6f6; }
-    .courtA { background: #e0f7fa; }
-    .courtB { background: #fff3e0; }
-    input[type=text] { width: 350px; padding: 2px 4px;}
-    .settings { margin-bottom: 2em; }
-    .settings label { margin-right: 1.2em; }
-    .player-list { margin-bottom: 1.5em; }
-    .player-preview { font-size: 0.97em; color: #333; margin-bottom: 0.5em; }
+ <style>
+    html, body { margin:0; padding:0; }
+    body { font-family:'Noto Sans KR', Arial, sans-serif; margin:0; background: #f5f8fa; color:#222; }
+    .main-wrap { max-width: 700px; margin:0 auto; padding:16px 2vw 24px 2vw; }
+    h2 { color:#0077b6; margin-bottom:0.7em; font-size:1.6em;}
+    .place-title { font-size:1.11em; color:#444; margin-bottom:1.5em;}
+    .player-box { background:#e3eef7; border-radius: 0.7em; padding: 1.2em 1.2em; margin-bottom:1.7em; }
+    .player-box strong {color:#18529d;}
+    .player-list-ul { margin:0.7em 0 0 0; padding-left:1.4em;}
+    .court-title { font-weight:bold; color:#18529d;}
+    .rest-note { color:#888; font-size:0.98em; margin-left:0.6em;}
+    .winner { font-weight: bold; color: #008542; letter-spacing:1px;}
+    .updated {font-size:0.99em; color:#888; margin-bottom:1.3em;}
+    .round-title {margin:2.2em 0 0.6em 0; font-size:1.16em;}
+    .scroll-table { overflow-x:auto; margin-bottom:1.5em; }
+    table { width:100%; min-width:460px; border-radius:0.7em; box-shadow:0 1.5px 8px #ccd6df33; background:white;}
+    th, td { border:1px solid #e2e8f0; padding:9px 7px; text-align:center;}
+    th { background:#f2f7fb; color:#18529d; font-size:0.98em;}
+    td.team { font-weight:500;}
+    .courtA-row { background: #f7fafc;}
+    .courtB-row { background: #fff8ed;}
+    /* 모바일 반응형 */
+    @media (max-width:600px) {
+      .main-wrap { max-width:100vw; padding:9px 2vw 14vw 2vw; }
+      .player-box { padding:0.75em 0.6em; font-size:0.97em;}
+      h2 { font-size:1.19em;}
+      .round-title { font-size:1em;}
+      table, th, td { font-size:0.93em;}
+    }
+    @media (max-width:420px) {
+      .main-wrap {padding:4px 0vw 12vw 0vw;}
+      .player-list-ul {padding-left:1.1em;}
+    }
   </style>
 </head>
 <body>
@@ -105,11 +127,6 @@
         여기에 Firestore 작업 결과가 표시됩니다...
     </div>
   <h2>실시간 테니스 대진표 (정보 저장 기능)</h2>
-  <div class="btnbox">
-    <button onclick="saveDataToCloud()">저장하기 (클라우드)</button>
-    <button onclick="loadDataFromCloud(true)">불러오기 (클라우드)</button>
-    <span style="color:#888;font-size:0.93em;">(실시간 동기화는 별도로)</span>
-  </div>
   <div id="settings"></div>
   <div id="playerInputs"></div>
   <div id="main"></div>
