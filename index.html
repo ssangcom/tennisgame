@@ -32,7 +32,7 @@
     input[type=text] {
       font-size: 1.09em; padding: 8px 6px; border-radius: 8px; border:1.5px solid #aac6de; margin: 5px 0;
       background: #f7fbfe;
-      min-width:110px; max-width:230px;
+      min-width:450px; max-width:550px;
     }
     select {
       font-size:1em; padding: 6px 10px; border-radius: 7px; border: 1.2px solid #97b5c4; background:#f5fcff;
@@ -152,14 +152,13 @@
         readDataBtn.addEventListener('click', readTestData);
 
     </script>
-   <h1>🎾 Firebase Firestore 테스트 🎾</h1>
-    <p>아래 버튼을 눌러 Firebase Firestore에 데이터를 쓰고 읽는 것을 테스트해보세요.</p>
-
-    <button id="writeDataBtn">Firestore에 데이터 쓰기</button>
-    <button id="readDataBtn">Firestore에서 데이터 읽기</button>
+  <h1>🎾실시간 테니스 대진표 (정보 저장 기능)🎾</h1>
+    <p>아래 버튼을 눌러 데이터 베이스에 데이터를 Read/Write 해보세요.</p>
+    <button id="writeDataBtn">데이터베이스 데이터 쓰기</button>
+    <button id="readDataBtn">데이터베이스 데이터 읽기</button>
 
     <div id="output">
-        여기에 Firestore 작업 결과가 표시됩니다...
+        여기에 데이터베이스 작업 결과가 표시됩니다...
     </div>
   <h2>실시간 테니스 대진표 (정보 저장 기능)</h2>
   <div id="settings"></div>
@@ -169,7 +168,7 @@
 const NUM_PLAYERS = 10;
 const NUM_ROUNDS = 5;
 const REST_PLAYERS = [
-  [0, 9], [1, 8], [2, 7], [3, 6], [4, 5]
+  [8, 9], [6, 7], [0, 1], [2, 3], [4, 5]
 ];
 const STORAGE_KEY = "tennis_save_2406";
 
