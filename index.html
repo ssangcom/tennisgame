@@ -29,6 +29,9 @@
     .courtA { background: #f7fafc;}
     .courtB { background: #fff8ed;}
     .settings label { font-size:1.04em; margin-right:1.3em; }
+    .id-box {margin-bottom:18px;}
+    .id-label { font-size:1.04em; color:#18529d; margin-right:7px;}
+    .id-value { font-size:1.02em; color:#138;}
     input[type=text] {
       font-size: 1.09em; padding: 8px 6px; border-radius: 8px; border:1.5px solid #aac6de; margin: 5px 0;
       background: #f7fbfe;
@@ -94,6 +97,15 @@
         const app = initializeApp(firebaseConfig);
         // Firestore 인스턴스 가져오기
         const db = getFirestore(app);
+        let dbId = localStorage.getItem("tennis_id") || "shared";
+        document.getElementById('idInput').value = dbId;
+        document.getElementById('idShow').textContent = dbId ? ` (현재: ${dbId})` : '';
+        document.getElementById('idInput').addEventListener('change', function(){
+          dbId = this.value.trim() || "shared";
+          document.getElementById('idShow').textContent = dbId ? ` (현재: ${dbId})` : '';
+          localStorage.setItem("tennis_id", dbId);
+          readTestData(); // ID 바꾸면 해당 ID 데이터 즉시 불러오기
+        });
 
         // HTML 요소 참조
         const outputDiv = document.getElementById('output');
@@ -101,28 +113,25 @@
         const readDataBtn = document.getElementById('readDataBtn');
 
         // Firestore에 데이터 쓰는 함수
-        async function writeTestData() {
+       async function writeTestData() {
             try {
-                // 'test_collection' 컬렉션 안에 'my_test_document'라는 문서 생성 또는 업데이트
-                const docRef = doc(db, "tennis", "shared");
+                const docRef = doc(db, "tennis", dbId);
                 await setDoc(docRef, {
                     playerNames: playerNames,
                     settings: settings,
                     results: results,
                     updated: new Date()
                 });
-                outputDiv.innerHTML = "✅ Firestore에 데이터 쓰기 성공! (tennis)";
-                console.log("Document successfully written!");
+                outputDiv.innerHTML = `✅ Firestore에 데이터 쓰기 성공! (tennis/${dbId})`;
             } catch (error) {
                 outputDiv.innerHTML = `❌ Firestore 데이터 쓰기 실패: ${error.message}`;
-                console.error("Error writing document: ", error);
             }
         }
 
         // Firestore에서 데이터 읽는 함수
         async function readTestData() {
             try {
-                const docRef = doc(db, "tennis", "shared");
+                const docRef = doc(db, "tennis", dbId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -138,7 +147,8 @@
                     console.log("Document data:", d);
                 } else {
                     // 문서가 없을 경우
-                    outputDiv.innerHTML = "⚠️ 문서 (test_collection/my_test_document) 가 존재하지 않습니다. 먼저 데이터를 써보세요!";
+                    outputDiv.innerHTML = `⚠️ 문서 (tennis/${dbId})가 존재하지 않습니다. 먼저 데이터를 써보세요!`;
+                    //outputDiv.innerHTML = "⚠️ 문서 (test_collection/my_test_document) 가 존재하지 않습니다. 먼저 데이터를 써보세요!";
                     console.log("No such document!");
                 }
             } catch (error) {
@@ -152,15 +162,20 @@
         readDataBtn.addEventListener('click', readTestData);
 
     </script>
-  <h1>🎾실시간 테니스 대진표 (정보 저장 기능)🎾</h1>
+    <h1>🎾실시간 테니스 대진표 (정보 저장 기능)🎾</h1>
+    <div class="id-box">
+      <label class="id-label" for="idInput">ID:</label>
+      <input id="idInput" type="text" value="shared" style="width:120px;" maxlength="24" autocomplete="off">
+      <span class="id-value" id="idShow"></span>
+    </div>
     <p>아래 버튼을 눌러 데이터 베이스에 데이터를 Read/Write 해보세요.</p>
+
     <button id="writeDataBtn">데이터베이스 데이터 쓰기</button>
     <button id="readDataBtn">데이터베이스 데이터 읽기</button>
 
     <div id="output">
         여기에 데이터베이스 작업 결과가 표시됩니다...
     </div>
-  <h2>실시간 테니스 대진표 (정보 저장 기능)</h2>
   <div id="settings"></div>
   <div id="playerInputs"></div>
   <div id="main"></div>
@@ -168,7 +183,7 @@
 const NUM_PLAYERS = 10;
 const NUM_ROUNDS = 5;
 const REST_PLAYERS = [
-  [8, 9], [6, 7], [0, 1], [2, 3], [4, 5]
+    [8, 9], [6, 7], [0, 1], [2, 3], [4, 5]
 ];
 const STORAGE_KEY = "tennis_save_2406";
 
